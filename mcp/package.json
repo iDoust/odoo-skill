@@ -1,0 +1,16 @@
+{
+    "name": "odoo-mcp-server",
+    "version": "1.0.0",
+    "description": "MCP Server for Odoo — allows AI agents to interact with Odoo databases in real-time",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.0",
+        "node-fetch": "^3.3.2"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}

@@ -141,3 +141,31 @@ A brief summary of critical breaking changes. Always refer to specific pattern f
 
 ## 🚀 AGENT INSTRUCTIONS
 Before executing any task, ALWAYS read `AGENTS.md` for foundational knowledge and instructions.
+
+---
+
+## 🤖 SPECIALIZED AGENT PERSONAS
+
+For complex or specialized tasks, load the appropriate agent persona from the `agents/` directory.
+The agent file will take over as the primary persona for that task.
+
+| Task | Load This Agent |
+|------|-----------------|
+| Planning a new module from a client requirement | `agents/odoo-planner.md` |
+| Reviewing / auditing existing code for security & quality | `agents/odoo-code-reviewer.md` |
+| Diagnosing and fixing an error or traceback | `agents/odoo-debugger.md` |
+| Migrating a module to a newer Odoo version | `agents/odoo-migrator.md` |
+
+**Usage example:** *"Load `.odoo-skill/agents/odoo-planner.md` and then plan a module for managing employee travel requests."*
+
+---
+
+## 🔌 MCP SERVER (Live Odoo Integration)
+
+For real-time database access, use the MCP server in `mcp/`.
+See `mcp/README.md` for setup instructions.
+
+Once connected, you can ask:
+- *"Show me all overdue invoices in Odoo"*
+- *"What fields does the `sale.order` model have?"*
+- *"Create a new partner named Acme Corp"*
