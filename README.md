@@ -257,7 +257,8 @@ Then configure your AI IDE to use the MCP server. See `mcp/README.md` for IDE-sp
 ├── rules/                           # Strict hard rules all AI agents must follow
 │   ├── coding-standard.md           # PEP8, Odoo conventions, naming rules
 │   ├── security-checklist.md        # SQL injection, sudo abuse, access control checklist
-│   └── version-differences.md       # Breaking changes: v17 → v18 → v19 reference
+│   ├── version-differences.md       # Breaking changes: v17 → v18 → v19 reference
+│   └── odoo-localization-id.md      # 🇮🇩 Indonesian localization context (PPN 12%, e-Faktur)
 │
 ├── templates/                       # Ready-to-copy boilerplate for common scenarios
 │   ├── basic-crud.md                # Minimal CRUD module with form, list, security

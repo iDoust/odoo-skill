@@ -166,15 +166,35 @@ def create(self, vals):
     pass
 ```
 
-## 9. Indonesia-Specific Context 🇮🇩
-Because this skill is often used for Indonesian businesses, be aware of these common localizations (`l10n_id`):
-- **NPWP**: Typically added to `res.partner` (e.g., `vat` or a custom `npwp` field).
-- **Tax (PPN 12%)**: Ensure VAT defaults and fiscal positions align with Indonesian PPN 12% rules.
-- **e-Faktur**: Integrating with DJP (Direktorat Jenderal Pajak) for Faktur Pajak is a common requirement.
-- **Currency**: `IDR` does not use decimals (rounding rules).
-- **Formatting**: Dates are often `DD/MM/YYYY`.
+## 9. Record Names (`_rec_name`, `_compute_display_name`)
+In Odoo, the way a record is displayed in a Many2one field is governed by its display name.
+- **`_rec_name`**: If the descriptive field is not `name`, set `_rec_name = 'my_custom_field'`.
+- **`_compute_display_name` (v17+)**: Replaces the old `name_get()`. Override this to customize how the record is formatted.
+- **`_name_search`**: Override this to allow users to search for the record using fields other than the `_rec_name`.
 
-## 10. Action Items for the Agent
+```python
+# Customize the display name (e.g., "[REF] Title")
+@api.depends('reference', 'title')
+def _compute_display_name(self):
+    for record in self:
+        record.display_name = f"[{record.reference}] {record.title}"
+
+# Allow searching by title even if they typed a reference
+@api.model
+def _name_search(self, name, domain=None, operator='ilike', limit=None, order=None):
+    domain = domain or []
+    if name:
+        domain = ['|', ('reference', operator, name), ('title', operator, name)] + domain
+    return self._search(domain, limit=limit, order=order)
+```
+
+## 10. Datetime & Timezone Context (UTC vs Local)
+**CRITICAL BUG SOURCE**: All Datetime fields in Odoo are stored in the database in **UTC**. They are automatically converted to the user's timezone only in the web UI.
+- `fields.Datetime.now()` returns the current UTC time.
+- If you need to perform calculations based on the user's local day/time, you must convert it using the context timezone (`self.env.user.tz`).
+- `self.env.cr`: Provides direct access to the database cursor for raw SQL (use sparingly). Never commit manually (`self.env.cr.commit()`) in normal business logic, as Odoo handles transactions automatically.
+
+## 11. Action Items for the Agent
 1. Determine the Odoo version of the workspace.
 2. Read the user's prompt carefully.
 3. Consult `SKILL.md` to map the task to the correct skill files.
