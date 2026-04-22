@@ -1,0 +1,38 @@
+{
+  "name": "odoo-skill",
+  "version": "1.0.0",
+  "description": "Comprehensive Odoo Custom Development Skill for AI Agents (Cursor, Windsurf, Claude Code, Copilot).",
+  "main": "SKILL.md",
+  "bin": {
+    "odoo-skill": "bin/odoo-skill.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iDoust/odoo-skill.git"
+  },
+  "keywords": [
+    "odoo",
+    "skill",
+    "ai",
+    "cursor",
+    "windsurf",
+    "copilot",
+    "claude",
+    "development"
+  ],
+  "author": "iDoust",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "examples",
+    "rules",
+    "skills",
+    "templates",
+    "AGENTS.md",
+    "README.md",
+    "SKILL.md"
+  ]
+}
