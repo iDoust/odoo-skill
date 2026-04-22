@@ -1,57 +1,106 @@
 ---
 name: e2e-sales-commission
-description: End-to-end walkthrough for building a Sales Commission extension.
+description: End-to-end case study of building a custom Sales Commission module
+versions: [17, 18, 19]
 ---
 
-# End-to-End Walkthrough: Sales Commission
+# Case Study: Sales Commission Module
 
 ## Scenario
-The client wants to automatically calculate sales commissions. Each salesperson has a specific commission percentage. When an invoice is PAID, the system should generate a commission record for the salesperson based on the invoice total.
+A company pays commissions to its salespersons based on paid invoices.
+Requirements:
+1. Salespersons get a fixed percentage (e.g., 5%) defined on their User/Employee profile.
+2. A new `sales.commission` model to record commission lines when an invoice is fully paid.
+3. Automatically generate a commission record when an `account.move` changes state to 'paid'.
 
-## Thought Process & Architecture
+## 1. Adding Commission Percentage to Users
+We inherit `res.users` (which represents the salesperson) to add a commission percentage field.
 
-1.  **Configuration:** We need to add a `commission_percentage` field to the Employee/User. Let's add it to `res.users` via inheritance.
-2.  **Core Model (`sales.commission`):** We need a new model to store the computed commissions. Fields: `user_id`, `amount`, `invoice_id`, `date`.
-3.  **Trigger Point:** We cannot trigger this when a Sale Order is confirmed, because the client wants it when the *Invoice is Paid*. We must inherit `account.move`.
-4.  **Action Automation:** We will override the method in `account.move` that marks an invoice as paid, or use an automated action / cron if the logic is too heavy. Let's override the payment state change.
-
-## Implementation Steps
-
-### Step 1: Extend `res.users`
-*   Python: `_inherit = 'res.users'`, add `commission_percentage = fields.Float()`.
-*   XML: Use XPath to inject this field into the `res.users` form view, visible only to HR/Admin.
-
-### Step 2: Create `sales.commission` Model
-*   Simple CRUD model. `amount` should be readonly.
-*   Security: Users can only see their own commissions (Record Rule). Managers can see all.
-
-### Step 3: Inherit `account.move` (The Tricky Part)
-*   In Odoo 17+, the payment state is computed dynamically.
-*   We need to override a method. Overriding `write()` and checking if `payment_state` changes to `paid` or `in_payment` is a common pattern.
-*   *Performance warning:* Do not do heavy operations directly in `write()`.
-*   Logic inside `write()`:
 ```python
-res = super().write(vals)
-if 'payment_state' in vals:
-    for move in self:
-        if move.move_type == 'out_invoice' and move.payment_state in ('paid', 'in_payment'):
-            # Check if commission already exists to avoid duplicates
-            existing = self.env['sales.commission'].search([('invoice_id', '=', move.id)])
-            if not existing and move.invoice_user_id.commission_percentage > 0:
-                calc_amount = move.amount_untaxed * (move.invoice_user_id.commission_percentage / 100.0)
-                self.env['sales.commission'].create({
-                    'user_id': move.invoice_user_id.id,
-                    'invoice_id': move.id,
-                    'amount': calc_amount,
-                    'date': fields.Date.context_today(self),
-                })
-return res
+from odoo import models, fields
+
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+
+    commission_percentage = fields.Float(string='Commission Percentage (%)', default=5.0)
 ```
 
-### Step 4: Menus and Views
-*   Create a menu "My Commissions" under the Sales app.
-*   List view showing Date, Invoice Ref, Amount.
-*   Add a graph view or pivot view so the salesperson can see their earnings per month.
+We also add this to the UI via an XPath in a view inherit:
+```xml
+<record id="view_users_form_inherit_commission" model="ir.ui.view">
+    <field name="name">res.users.form.inherit.commission</field>
+    <field name="model">res.users</field>
+    <field name="inherit_id" ref="base.view_users_form"/>
+    <field name="arch" type="xml">
+        <xpath expr="//notebook" position="inside">
+            <page string="Commissions">
+                <group>
+                    <field name="commission_percentage"/>
+                </group>
+            </page>
+        </xpath>
+    </field>
+</record>
+```
 
-## AI Execution Strategy
-When extending core modules like Accounting (`account`), always check the current state against the `vals` dictionary in `write()`. Ensure you use `amount_untaxed` (not `amount_total`) for commissions to avoid paying commission on taxes. Refer to `skills/domain-specific/accounting-patterns.md` for `account.move` behaviors.
+## 2. Commission Model
+We create the table that will store the actual commission amounts owed.
+
+```python
+from odoo import models, fields, api
+
+class SalesCommission(models.Model):
+    _name = 'sales.commission'
+    _description = 'Sales Commission Record'
+
+    name = fields.Char(string='Description', compute='_compute_name', store=True)
+    user_id = fields.Many2one('res.users', string='Salesperson', required=True)
+    invoice_id = fields.Many2one('account.move', string='Invoice', required=True)
+    amount_base = fields.Monetary(string='Base Amount', currency_field='currency_id')
+    commission_amount = fields.Monetary(string='Commission Owed', currency_field='currency_id')
+    currency_id = fields.Many2one('res.currency', related='invoice_id.currency_id')
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('paid', 'Paid')
+    ], string='Status', default='draft')
+
+    @api.depends('invoice_id', 'user_id')
+    def _compute_name(self):
+        for record in self:
+            record.name = f"Commission for {record.invoice_id.name} ({record.user_id.name})"
+```
+
+## 3. Hooking into the Payment Flow
+We need to override a method in `account.move` to detect when a customer invoice is paid. In modern Odoo (v16+), payment state is tracked via `payment_state`.
+
+```python
+class AccountMove(models.Model):
+    _inherit = 'account.move'
+
+    commission_id = fields.Many2one('sales.commission', string='Commission Record', copy=False)
+
+    def _compute_payment_state(self):
+        super()._compute_payment_state()
+        for move in self:
+            # Check if it's a customer invoice, now fully paid, and doesn't have a commission yet
+            if move.move_type == 'out_invoice' and move.payment_state in ('paid', 'in_payment') and not move.commission_id:
+                if move.invoice_user_id and move.invoice_user_id.commission_percentage > 0:
+                    # Calculate commission based on untaxed amount
+                    base_amount = move.amount_untaxed
+                    pct = move.invoice_user_id.commission_percentage / 100.0
+                    commission_val = base_amount * pct
+
+                    # Create commission record
+                    commission = self.env['sales.commission'].create({
+                        'user_id': move.invoice_user_id.id,
+                        'invoice_id': move.id,
+                        'amount_base': base_amount,
+                        'commission_amount': commission_val,
+                    })
+                    move.commission_id = commission.id
+```
+
+## Agent Takeaways
+1. **Hooking Business Logic:** We didn't use `action_post()` because invoices aren't paid when posted. Overriding `_compute_payment_state` and running after `super()` is the standard way to detect payment completion.
+2. **Preventing Duplicates:** We check `not move.commission_id` to ensure we don't generate multiple commissions if the invoice state changes back and forth.
+3. **Currency fields:** Notice how `amount_base` and `commission_amount` require a `currency_field`. This is mandatory for `Monetary` fields in Odoo.

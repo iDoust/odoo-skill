@@ -132,7 +132,49 @@ from odoo import _
 raise UserError(_('You cannot confirm a canceled order.'))
 ```
 
-## 7. Action Items for the Agent
+## 7. `Many2many` / `One2many` Command Tuples
+When creating or writing to relational fields (x2many), Odoo uses a tuple syntax. This is a common source of bugs if not used correctly.
+
+```python
+# (0, 0, vals)  → Create a new record and link it to this one
+# (1, id, vals) → Update an existing linked record with new values
+# (2, id, 0)    → Remove the link AND delete the linked record from the database
+# (3, id, 0)    → Remove the link (unlink), but do NOT delete the record
+# (4, id, 0)    → Link an existing record to this one
+# (5, 0, 0)     → Unlink all records (like (3) but for all)
+# (6, 0, [ids]) → Replace all existing links with this list of IDs
+
+# Example: Replace all lines with a single existing line ID 42
+self.line_ids = [(6, 0, [42])]
+```
+
+## 8. Best Practice: `@api.model_create_multi`
+In Odoo 17+, you MUST always use `@api.model_create_multi` for the `create` method to support bulk creation and improve performance.
+
+```python
+# ✅ GOOD (v17, 18, 19)
+@api.model_create_multi
+def create(self, vals_list):
+    for vals in vals_list:
+        if not vals.get('name') or vals.get('name') == _('New'):
+            vals['name'] = self.env['ir.sequence'].next_by_code('my.model')
+    return super().create(vals_list)
+
+# ❌ BAD: Single create method
+@api.model
+def create(self, vals):
+    pass
+```
+
+## 9. Indonesia-Specific Context 🇮🇩
+Because this skill is often used for Indonesian businesses, be aware of these common localizations (`l10n_id`):
+- **NPWP**: Typically added to `res.partner` (e.g., `vat` or a custom `npwp` field).
+- **Tax (PPN 12%)**: Ensure VAT defaults and fiscal positions align with Indonesian PPN 12% rules.
+- **e-Faktur**: Integrating with DJP (Direktorat Jenderal Pajak) for Faktur Pajak is a common requirement.
+- **Currency**: `IDR` does not use decimals (rounding rules).
+- **Formatting**: Dates are often `DD/MM/YYYY`.
+
+## 10. Action Items for the Agent
 1. Determine the Odoo version of the workspace.
 2. Read the user's prompt carefully.
 3. Consult `SKILL.md` to map the task to the correct skill files.

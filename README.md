@@ -1,5 +1,9 @@
 # Odoo Custom Module Development Skill
 
+![Odoo Versions](https://img.shields.io/badge/Odoo-17%20%7C%2018%20%7C%2019-blue?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
+
 A comprehensive, platform-agnostic AI knowledge base and CLI toolkit for **Odoo 17, 18, and 19** custom module development — built to supercharge AI assistants with real Odoo patterns, source code access, and live database integration.
 
 ---
@@ -56,6 +60,17 @@ my_custom_module/
 │   ├── my_custom_module_security.xml  # User & Manager groups
 │   └── ir.model.access.csv
 ```
+
+## 🛠️ CLI Tools (`bin/`)
+
+The `odoo-skill` comes with a powerful command-line interface powered by the scripts in the `bin/` directory.
+
+| Command | Purpose |
+|---|---|
+| `npx github:iDoust/odoo-skill init` | Configures the current workspace for AI agents by generating `.cursorrules`, `.windsurfrules`, or `CLAUDE.md`. |
+| `npx github:iDoust/odoo-skill create <module>` | Scaffolds a complete, production-ready module skeleton. |
+
+*Note: You can run these commands directly via `npx` without needing to clone the repository manually.*
 
 ---
 

@@ -1,55 +1,75 @@
 ---
 name: module-structure
-description: Standard directory and file structure for Odoo modules.
+description: Standard layout and initialization pattern for an Odoo custom module
 versions: [17, 18, 19]
 ---
 
-# Odoo Module Structure
+# Module Structure and Initialization
 
 ## Quick Reference
-Standard Odoo modules follow a strict directory structure.
+Every Odoo module requires a specific directory layout and initialization files to be recognized by the framework.
 
-```text
+## Standard Layout
+A typical business module should follow this structure:
+
+```
 my_module/
-├── __manifest__.py              # REQUIRED: Module metadata
-├── __init__.py                  # Imports sub-packages
-├── models/
+├── __init__.py                  # Imports controllers and models
+├── __manifest__.py              # Module metadata and dependencies
+├── controllers/                 # HTTP/JSON routes
 │   ├── __init__.py
-│   └── my_model.py              # ORM classes
-├── views/
-│   ├── my_model_views.xml       # Form/List/Search views
-│   └── menu_views.xml           # Menus and Window Actions
-├── security/
-│   ├── ir.model.access.csv      # Access rights
-│   └── security.xml             # Security groups & record rules
-├── data/
-│   └── sequence_data.xml        # Master data, crons
-├── controllers/
+│   └── main.py
+├── models/                      # Business logic and database schemas
 │   ├── __init__.py
-│   └── main.py                  # HTTP Endpoints
-└── static/
-    └── src/
-        ├── js/                  # JavaScript/OWL
-        ├── xml/                 # QWeb Templates for JS
-        └── scss/                # Styles
+│   ├── my_model.py
+│   └── inherited_model.py
+├── security/                    # Access control
+│   ├── ir.model.access.csv      # CRUD rules per model per group
+│   └── security_groups.xml      # Category and groups definitions
+├── data/                        # Initial data, sequences, cron jobs
+│   ├── sequences.xml
+│   └── cron_jobs.xml
+├── views/                       # UI definitions
+│   ├── my_model_views.xml
+│   ├── inherited_views.xml
+│   └── menu_views.xml
+├── report/                      # QWeb PDF/HTML reports
+│   ├── my_model_report.xml
+│   └── report_templates.xml
+├── static/                      # Frontend assets
+│   ├── description/             # Module icon.png
+│   └── src/                     # JS, XML (OWL), SCSS
+│       ├── js/
+│       ├── xml/
+│       └── scss/
+└── wizard/                      # TransientModels (popups)
+    ├── __init__.py
+    ├── my_wizard.py
+    └── my_wizard_views.xml
 ```
 
-## `__init__.py` Patterns
+## Initialization Files
 
-### Root `__init__.py`
+### 1. Root `__init__.py`
+Must import the directories containing Python code.
+
 ```python
-from . import models
+# my_module/__init__.py
 from . import controllers
+from . import models
 from . import wizard
 ```
 
-### Sub-directory `__init__.py` (e.g., `models/__init__.py`)
+### 2. Sub-directory `__init__.py`
+Must import the specific python files in that directory. Order matters if there are cross-dependencies, though Odoo usually resolves model dependencies automatically.
+
 ```python
+# my_module/models/__init__.py
 from . import my_model
-from . import res_partner        # Inherited models
+from . import inherited_model
 ```
 
-## Best Practices ✅
-- Keep one model per Python file.
-- Name the Python file exactly like the model, replacing dots with underscores (e.g., `sale.order` -> `sale_order.py`).
-- Name the XML view file like the model + `_views.xml` (e.g., `sale_order_views.xml`).
+## Best Practices
+- **Do not** put Python code in the root directory except `__init__.py` and `__manifest__.py`.
+- **Do not** import `tests/` in the root `__init__.py`. The testing framework will discover them automatically if the files start with `test_`.
+- Always put your module icon at `static/description/icon.png`.

@@ -61,6 +61,8 @@ When the user asks for specific functionality, search the `skills/` directory ba
 | config, settings, res.config.settings, parameter | `skills/core/config-settings.md` |
 | data, xml, csv, noupdate, initial | `skills/core/data-initialization.md` |
 | translate, i18n, language, string | `skills/core/translations-i18n.md` |
+| onchange, dynamic domain, api.onchange | `skills/core/onchange-dynamic.md` |
+| binary, attachment, file upload, image | `skills/core/attachment-binary.md` |
 | **VIEWS & UI** | |
 | form, header, sheet, chatter | `skills/views/form-view.md` |
 | list, tree, columns, editable | `skills/views/list-view.md` |
@@ -69,6 +71,9 @@ When the user asks for specific functionality, search the `skills/` directory ba
 | xpath, position, inherit_id | `skills/views/view-inheritance.md` |
 | widgets, statusbar, badge, monetary | `skills/views/widgets.md` |
 | invisible, readonly, attrs, visibility | `skills/views/dynamic-visibility.md` |
+| dashboard, kpi, charts, graph, pivot | `skills/views/dashboard-kpi.md` |
+| actions, ir.actions.act_window, url | `skills/views/actions.md` |
+| menus, ir.ui.menu, top menu, app | `skills/views/menus.md` |
 | **BUSINESS LOGIC** | |
 | workflow, state, approval, statusbar | `skills/business/workflow-states.md` |
 | wizard, transient, dialog, popup | `skills/business/wizard-patterns.md` |
@@ -77,12 +82,15 @@ When the user asks for specific functionality, search the `skills/` directory ba
 | sequence, numbering, autonumber | `skills/business/sequence-numbering.md` |
 | multi-company, allowed_company_ids | `skills/business/multi-company.md` |
 | cron, scheduled action, server action | `skills/business/cron-automation.md` |
-| actions, menu, act_window, url | `skills/business/actions-menus.md` |
+| data migration, upgrade scripts, migrations | `skills/business/data-migration.md` |
+| complex wizards, multi-step validation | `skills/business/wizards.md` |
+| advanced reports, sub-templates | `skills/business/reports.md` |
 | **INTEGRATION** | |
 | controller, http, route, rest, json | `skills/integration/controller-api.md` |
 | xmlrpc, jsonrpc, external api | `skills/integration/external-api.md` |
 | webhook, incoming, outbound | `skills/integration/webhook-patterns.md` |
 | import, export, csv, excel | `skills/integration/import-export.md` |
+| portal access, customer portal, external access | `skills/integration/portal-access.md` |
 | **FRONTEND (OWL & JS)** | |
 | owl, component, js, widget, frontend | `skills/frontend/owl-components.md` |
 | assets, scss, bundle, web.assets | `skills/frontend/assets-bundling.md` |
@@ -96,6 +104,7 @@ When the user asks for specific functionality, search the `skills/` directory ba
 | performance, n+1, prefetch, speed | `skills/quality/performance-guide.md` |
 | logger, debug, warning, shell | `skills/quality/logging-debugging.md` |
 | exception, error, validationerror | `skills/quality/error-handling.md` |
+| troubleshooting, fix, traceback, error guide | `skills/quality/troubleshooting-guide.md` |
 | **DOMAIN SPECIFIC (BUSINESS MODULES)** | |
 | accounting, invoice, journal, account.move | `skills/domain-specific/accounting-patterns.md` |
 | sale, quotation, order, crm, lead | `skills/domain-specific/sale-crm.md` |
@@ -104,6 +113,10 @@ When the user asks for specific functionality, search the `skills/` directory ba
 | product, variant, template, attribute | `skills/domain-specific/product-variants.md` |
 | hr, employee, leave, contract | `skills/domain-specific/hr-employee.md` |
 | project, task, timesheet | `skills/domain-specific/project-task.md` |
+| lot, serial number, tracking, traceability | `skills/domain-specific/lot-serial.md` |
+| tax, fiscal position, taxes | `skills/domain-specific/tax-fiscal.md` |
+| uom, unit of measure, conversion | `skills/domain-specific/uom.md` |
+| pricelist, pricing, discount | `skills/domain-specific/pricelist-pricing.md` |
 
 ---
 

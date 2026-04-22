@@ -1,50 +1,158 @@
 ---
 name: e2e-fleet-management
-description: End-to-end walkthrough for building a custom Fleet Management add-on.
+description: End-to-end case study of building a custom Fleet Maintenance module
+versions: [17, 18, 19]
 ---
 
-# End-to-End Walkthrough: Fleet Maintenance Module
+# Case Study: Fleet Maintenance Module
 
 ## Scenario
-The client wants to manage their internal vehicle fleet maintenance. They need a custom module where drivers can log maintenance requests, mechanics can approve them and log the costs, and managers can view reports.
+A client needs a way to track maintenance requests for their vehicle fleet. They already use Odoo's standard `fleet` module, but need to add:
+1. A new `fleet.maintenance` model.
+2. A state machine (Draft -> In Progress -> Done -> Cancelled).
+3. A Smart Button on the `fleet.vehicle` form to see maintenance history.
+4. An automated cron job to change state to "Overdue" if not done by scheduled date.
 
-## Thought Process & Architecture
+## 1. Model Definition
+We create `fleet_maintenance.py` to define the core data structure and state machine.
 
-1.  **Core Model (`fleet.maintenance`):** We need a new standalone model. It will need a workflow state (Draft -> Approved -> Done -> Cancelled).
-2.  **Dependencies:** We will depend on `mail` (for chatter) and `fleet` (to link to existing Odoo vehicles).
-3.  **Inheritance:** We will inherit the existing `fleet.vehicle` model to add a "Smart Button" showing how many maintenance logs exist for that vehicle.
-4.  **Security:** 
-    *   Drivers (Base Users) can only create and read their own requests.
-    *   Mechanics (Custom Group) can approve and read all requests.
+```python
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
-## Implementation Steps
+class FleetMaintenance(models.Model):
+    _name = 'fleet.maintenance'
+    _description = 'Fleet Maintenance Request'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
-### Step 1: `__manifest__.py` Setup
-*   `depends`: `['base', 'mail', 'fleet']`
-*   `data`: Load security files first, then views, then menus.
+    name = fields.Char(string='Reference', required=True, copy=False, readonly=True, default=lambda self: _('New'))
+    vehicle_id = fields.Many2one('fleet.vehicle', string='Vehicle', required=True, tracking=True)
+    date_scheduled = fields.Date(string='Scheduled Date', required=True, tracking=True)
+    mechanic_id = fields.Many2one('res.partner', string='Mechanic')
+    notes = fields.Text(string='Notes')
+    
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('in_progress', 'In Progress'),
+        ('done', 'Done'),
+        ('overdue', 'Overdue'),
+        ('cancel', 'Cancelled')
+    ], string='Status', default='draft', tracking=True)
 
-### Step 2: Security Setup (`security/security.xml` & `ir.model.access.csv`)
-*   Create a group `<record id="group_fleet_mechanic" model="res.groups">`.
-*   In CSV: Give base users `read, create` rights. Give mechanics `read, write, create, unlink` rights.
-*   Record Rule: Create a rule `[('create_uid', '=', user.id)]` applied to base users so they only see their own records.
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('fleet.maintenance') or _('New')
+        return super().create(vals_list)
 
-### Step 3: Create the Core Model
-*   Fields: `name` (sequence), `vehicle_id` (Many2one to `fleet.vehicle`), `description`, `cost` (Float), `state` (Selection), `mechanic_id` (Many2one to `res.users`).
-*   Action methods: `action_approve()` which enforces that the `cost` must be `> 0`.
+    def action_in_progress(self):
+        self.write({'state': 'in_progress'})
 
-### Step 4: Create Views
-*   **Form View:** Include `header` with statusbar and buttons. Use `invisible="state != 'draft'"` to hide/show buttons. Put `cost` in a group and make it `readonly="state == 'done'"`.
-*   **List View:** Show `name`, `vehicle_id`, `cost`, and `state` (using `widget="badge"`).
-*   **Search View:** Add predefined filters like `<filter name="draft" string="Draft" domain="[('state','=','draft')]"/>` and Group By Vehicle.
+    def action_done(self):
+        self.write({'state': 'done'})
 
-### Step 5: Inherit Existing Models
-*   Extend `fleet.vehicle` via `_inherit = 'fleet.vehicle'`.
-*   Add a computed field `maintenance_count` to count linked records.
-*   Create an XML View inheritance (`inherit_id`) targeting `fleet.vehicle.form`. Use `<xpath expr="//div[@name='button_box']" position="inside">` to add the smart button.
+    def action_cancel(self):
+        self.write({'state': 'cancel'})
 
-### Step 6: Polish
-*   Add chatter to the bottom of the maintenance form (`mail.thread`, `mail.activity.mixin`).
-*   Ensure `name` uses `ir.sequence` in the `create()` override.
+    # Cron job method
+    @api.model
+    def _cron_check_overdue(self):
+        overdue_records = self.search([
+            ('state', 'in', ['draft', 'in_progress']),
+            ('date_scheduled', '<', fields.Date.today())
+        ])
+        overdue_records.write({'state': 'overdue'})
+```
 
-## AI Execution Strategy
-When executing a request like this, create the folders `models/`, `views/`, `security/`, and `data/` in a single pass. Ensure module architecture strictly follows `skills/core/module-structure.md`.
+## 2. Inheriting the Base Model
+We extend `fleet.vehicle` to add a `One2many` inverse relation and a compute method for the smart button.
+
+```python
+class FleetVehicle(models.Model):
+    _inherit = 'fleet.vehicle'
+
+    maintenance_ids = fields.One2many('fleet.maintenance', 'vehicle_id', string='Maintenance History')
+    maintenance_count = fields.Integer(compute='_compute_maintenance_count')
+
+    @api.depends('maintenance_ids')
+    def _compute_maintenance_count(self):
+        for vehicle in self:
+            vehicle.maintenance_count = len(vehicle.maintenance_ids)
+
+    def action_view_maintenance(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Maintenance Records',
+            'view_mode': 'list,form',
+            'res_model': 'fleet.maintenance',
+            'domain': [('vehicle_id', '=', self.id)],
+            'context': {'default_vehicle_id': self.id},
+        }
+```
+
+## 3. UI Views (Smart Button)
+We use XPath to inject the smart button into the existing `fleet.vehicle` form view.
+
+```xml
+<record id="view_fleet_vehicle_form_inherit_maintenance" model="ir.ui.view">
+    <field name="name">fleet.vehicle.form.inherit.maintenance</field>
+    <field name="model">fleet.vehicle</field>
+    <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+    <field name="arch" type="xml">
+        <xpath expr="//div[@name='button_box']" position="inside">
+            <button name="action_view_maintenance" type="object" class="oe_stat_button" icon="fa-wrench">
+                <field name="maintenance_count" widget="statinfo" string="Maintenance"/>
+            </button>
+        </xpath>
+    </field>
+</record>
+```
+
+## 4. The Form View for the New Model
+```xml
+<record id="view_fleet_maintenance_form" model="ir.ui.view">
+    <field name="name">fleet.maintenance.form</field>
+    <field name="model">fleet.maintenance</field>
+    <field name="arch" type="xml">
+        <form string="Maintenance Request">
+            <header>
+                <button name="action_in_progress" string="Start Work" type="object" invisible="state != 'draft'" class="oe_highlight"/>
+                <button name="action_done" string="Mark as Done" type="object" invisible="state != 'in_progress'" class="oe_highlight"/>
+                <button name="action_cancel" string="Cancel" type="object" invisible="state in ('done', 'cancel')"/>
+                <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done"/>
+            </header>
+            <sheet>
+                <div class="oe_title">
+                    <h1><field name="name"/></h1>
+                </div>
+                <group>
+                    <group>
+                        <field name="vehicle_id"/>
+                        <field name="mechanic_id"/>
+                    </group>
+                    <group>
+                        <field name="date_scheduled"/>
+                    </group>
+                </group>
+                <notebook>
+                    <page string="Notes">
+                        <field name="notes"/>
+                    </page>
+                </notebook>
+            </sheet>
+            <div class="oe_chatter">
+                <field name="message_follower_ids"/>
+                <field name="activity_ids"/>
+                <field name="message_ids"/>
+            </div>
+        </form>
+    </field>
+</record>
+```
+
+## Agent Takeaways
+1. **Module extension**: Never edit `fleet` directly. We created a separate `fleet_maintenance` module and used `_inherit`.
+2. **Smart Buttons**: Required a `One2many` relation, a computed count field, and an action returning a dictionary.
+3. **Chatter**: Adding chatter requires inheriting `mail.thread` and `mail.activity.mixin` and adding the XML snippet at the bottom of the form.
