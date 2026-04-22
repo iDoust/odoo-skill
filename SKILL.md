@@ -26,14 +26,18 @@ b) **Odoo Enterprise**: Check enterprise addons if applicable.
 c) **OCA (Odoo Community Association)**: Many common business requirements are already solved by OCA modules.
 Only develop from scratch if no similar functionality exists or if the customization is highly specific to the client.
 
-### 3. APPLY STRICT DEVELOPMENT STANDARDS
+### 3. PREVENT HALLUCINATION WITH SOURCE SEARCH 🔍
+If you are unsure about an Odoo API, parameter, or syntax, **DO NOT GUESS OR HALLUCINATE**. 
+If the MCP server is connected and configured with `ODOO_X_SOURCE_PATH`, immediately use the `odoo_search_source` tool to search the real Odoo source code (e.g. `addons` or `addons_enterprise`) for examples of how Odoo engineers implement it.
+
+### 4. APPLY STRICT DEVELOPMENT STANDARDS
 - **Language**: All code, variables, and docstrings MUST be in **ENGLISH**.
 - **Python**: PEP8, SOLID, DRY, KISS. No `# -*- coding: utf-8 -*-` needed for Python 3. Use `super()` without arguments.
 - **JavaScript/OWL**: Modern ES6+, correct OWL version (v17-18: 2.x, v19: 3.x).
 - **XML/Views**: Follow version-specific visibility rules (`invisible` instead of `attrs`).
 - **Security**: Always create `ir.model.access.csv` for new models. Prevent SQL injection. Do not abuse `sudo()`.
 
-### 4. LOAD RELEVANT CONTEXT (PROGRESSIVE LOADING)
+### 5. LOAD RELEVANT CONTEXT (PROGRESSIVE LOADING)
 Do not guess syntax. Read the appropriate files based on the keywords in the user's request.
 
 ---
@@ -162,10 +166,12 @@ The agent file will take over as the primary persona for that task.
 
 ## 🔌 MCP SERVER (Live Odoo Integration)
 
-For real-time database access, use the MCP server in `mcp/`.
+For real-time database access and **Local Source Code Search**, use the MCP server in `mcp/`.
 See `mcp/README.md` for setup instructions.
 
 Once connected, you can ask:
-- *"Show me all overdue invoices in Odoo"*
+- *"Search the Odoo 18 source code for examples of `status_bar` widget"* (Uses `odoo_search_source`)
+- *"Read the file `addons/sale/models/sale_order.py` in Odoo 19"* (Uses `odoo_read_source_file`)
+- *"Show me all overdue invoices in Odoo"* (Uses `odoo_search_read`)
 - *"What fields does the `sale.order` model have?"*
 - *"Create a new partner named Acme Corp"*

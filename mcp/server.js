@@ -50,6 +50,18 @@ const ODOO_DB = process.env.ODOO_DB || 'odoo';
 const ODOO_USERNAME = process.env.ODOO_USERNAME || 'admin';
 const ODOO_PASSWORD = process.env.ODOO_PASSWORD || 'admin';
 
+// Local Source Code Paths
+const ODOO_17_SOURCE_PATH = process.env.ODOO_17_SOURCE_PATH || '';
+const ODOO_18_SOURCE_PATH = process.env.ODOO_18_SOURCE_PATH || '';
+const ODOO_19_SOURCE_PATH = process.env.ODOO_19_SOURCE_PATH || '';
+
+function getSourcePath(version) {
+    if (String(version).startsWith('17')) return ODOO_17_SOURCE_PATH;
+    if (String(version).startsWith('18')) return ODOO_18_SOURCE_PATH;
+    if (String(version).startsWith('19')) return ODOO_19_SOURCE_PATH;
+    return '';
+}
+
 let odooUid = null; // Will be set after authentication
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,6 +289,32 @@ const TOOLS = [
         description: 'Get information about the connected Odoo instance (URL, database, version).',
         inputSchema: { type: 'object', properties: {} },
     },
+    {
+        name: 'odoo_search_source',
+        description: 'Search for code patterns directly in the local Odoo source code (addons). Very useful for finding real Odoo examples.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                version: { type: 'string', description: "Odoo version (17, 18, 19)" },
+                query: { type: 'string', description: "Text or regex query to search" },
+                filePattern: { type: 'string', description: "File pattern (e.g., '*.py', '*.xml', '*.js')", default: '*.py' },
+                subpath: { type: 'string', description: "Specific subfolder to search (e.g., 'addons/sale')", default: 'addons' }
+            },
+            required: ['version', 'query'],
+        },
+    },
+    {
+        name: 'odoo_read_source_file',
+        description: 'Read the contents of a specific file from the local Odoo source code.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                version: { type: 'string', description: "Odoo version (17, 18, 19)" },
+                filepath: { type: 'string', description: "Relative path to the file (e.g., 'addons/sale/models/sale_order.py')" }
+            },
+            required: ['version', 'filepath'],
+        },
+    },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -349,6 +387,52 @@ async function handleTool(name, args) {
                     status: 'disconnected',
                     error: e.message,
                 });
+            }
+        }
+
+        case 'odoo_search_source': {
+            const { version, query, filePattern = '*.py', subpath = 'addons' } = args;
+            const basePath = getSourcePath(version);
+            if (!basePath) return JSON.stringify({ error: `Source path for Odoo ${version} is not configured in MCP .env` });
+            
+            return new Promise((resolve) => {
+                const { exec } = require('child_process');
+                let cmd = '';
+                const searchPath = path.join(basePath, subpath);
+                
+                if (searchPath.includes('wsl.localhost') || searchPath.includes('wsl$')) {
+                    const match = searchPath.match(/wsl(?:\.localhost|\$)\\([^\\]+)\\(.+)/i);
+                    if (match) {
+                        const distro = match[1];
+                        const linuxPath = '/' + match[2].replace(/\\/g, '/');
+                        const ext = filePattern === '*.py' ? '--include="*.py"' : filePattern === '*.xml' ? '--include="*.xml"' : '--include="*.js"';
+                        cmd = `wsl -d ${distro} -- grep -rn ${ext} "${query.replace(/"/g, '\\"')}" "${linuxPath}" | head -n 100`;
+                    }
+                }
+                
+                if (!cmd) {
+                    cmd = `powershell -Command "Get-ChildItem -Path '${searchPath}' -Recurse -Include ${filePattern} | Select-String -Pattern '${query.replace(/'/g, "''")}' | Select-Object -First 100"`;
+                }
+
+                exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+                    if (error && error.code !== 1) resolve(JSON.stringify({ error: error.message, stderr }));
+                    else resolve(stdout || 'No results found.');
+                });
+            });
+        }
+
+        case 'odoo_read_source_file': {
+            const { version, filepath } = args;
+            const basePath = getSourcePath(version);
+            if (!basePath) return JSON.stringify({ error: `Source path for Odoo ${version} is not configured in MCP .env` });
+            
+            try {
+                const fullPath = path.join(basePath, filepath);
+                // Can safely read UNC paths in Node Windows
+                const content = fs.readFileSync(fullPath, 'utf8');
+                return content;
+            } catch (e) {
+                return JSON.stringify({ error: `Failed to read file: ${e.message}` });
             }
         }
 
