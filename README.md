@@ -280,9 +280,9 @@ Then configure your AI IDE to use the MCP server. See `mcp/README.md` for IDE-sp
 
 | Odoo Version | Community | Enterprise |
 |---|---|---|
-| **19.0** | ✅ Fully supported | ✅ Fully supported |
-| **18.0** | ✅ Fully supported | ✅ Fully supported |
-| **17.0** | ✅ Fully supported | ✅ Fully supported |
+| [**19.0**](https://github.com/odoo/odoo/tree/19.0) | ✅ Fully supported | ✅ Fully supported |
+| [**18.0**](https://github.com/odoo/odoo/tree/18.0) | ✅ Fully supported | ✅ Fully supported |
+| [**17.0**](https://github.com/odoo/odoo/tree/17.0) | ✅ Fully supported | ✅ Fully supported |
 
 ---
 
