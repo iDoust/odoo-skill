@@ -1,10 +1,20 @@
-# Odoo Custom Module Development Skill
+<p align="center">
+  <h1 align="center">🦉 Odoo Custom Module Development Skill</h1>
+  <p align="center">
+    <strong>A comprehensive, platform-agnostic AI knowledge base and CLI toolkit for Odoo 17, 18, and 19.</strong>
+  </p>
+  <p align="center">
+    Built to supercharge AI assistants with real Odoo patterns, source code access, and live database integration to prevent hallucinations and generate production-ready code.
+  </p>
+</p>
 
-![Odoo Versions](https://img.shields.io/badge/Odoo-17%20%7C%2018%20%7C%2019-blue?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
-
-A comprehensive, platform-agnostic AI knowledge base and CLI toolkit for **Odoo 17, 18, and 19** custom module development — built to supercharge AI assistants with real Odoo patterns, source code access, and live database integration.
+<p align="center">
+  <img src="https://img.shields.io/badge/Odoo-17%20%7C%2018%20%7C%2019-714B67?logo=odoo&logoColor=white" alt="Odoo Versions">
+  <img src="https://img.shields.io/badge/AI-Cursor%20%7C%20Windsurf%20%7C%20Claude-blueviolet?logo=openai&logoColor=white" alt="AI Compatible">
+  <img src="https://img.shields.io/badge/MCP-Server%20Included-orange?logo=json&logoColor=white" alt="MCP Server">
+  <img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT License">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+</p>
 
 ---
 
