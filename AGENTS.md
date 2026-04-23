@@ -104,6 +104,29 @@ records = self.env['product.template'].sudo().search([('is_published', '=', True
 ### ❌ DO NOT Forget Access Rights
 Odoo denies access by default. Every new model MUST have an entry in `ir.model.access.csv`. Without it, users (even admins in some contexts) will get an `AccessError`.
 
+### ❌ DO NOT Write Global CSS
+Never write CSS rules that target global Odoo classes like `.o_form_view` directly. This **will break** the UI for all other modules.
+Always scope your CSS under a module-specific wrapper class and add that class to the `<form>` tag:
+
+```scss
+// ❌ BAD: Affects every form in the entire system
+.o_form_view { font-size: 16px; }
+
+// ✅ GOOD: Scoped only to this module
+.my_module_form .o_form_view { font-size: 16px; }
+```
+
+SCSS files must be placed in `static/src/scss/<module_name>.scss` and registered in `__manifest__.py` under `web.assets_backend`.
+
+### ❌ DO NOT Over-Engineer Custom Modules
+Before adding any new class, method, model, or wizard, ask:
+1. Does this feature already exist in Odoo? (`_inherit` it, don't rebuild it)
+2. Can this be solved with a **server action** or **scheduled action** instead of Python code?
+3. Can this be a button on an existing form rather than a new wizard?
+4. Does the client **actually** need this config setting, or is a hardcoded value fine?
+
+Keep it simple. The best Odoo code is the code you didn't write.
+
 ## 5. Quick Context: self.env
 
 `self.env` provides access to the execution environment:

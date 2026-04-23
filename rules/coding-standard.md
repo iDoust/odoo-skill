@@ -16,6 +16,7 @@ These rules enforce consistency, maintainability, and compatibility with the Odo
 - XML views go in `views/`
 - Data files (master data, cron, sequences) go in `data/`
 - Security definitions go in `security/`
+- Static assets (CSS, JS, XML templates) go in `static/src/`
 - **Imports:** The `__init__.py` files must only import the necessary subdirectories or files.
 
 ## 3. Python Import Ordering
@@ -64,7 +65,55 @@ All imports must be at the top of the file, ordered and separated by a blank lin
 - **Action:** `model_name_action` (e.g., `sale_order_action`)
 - **Menu:** `model_name_menu` (e.g., `sale_order_menu`)
 
-## 6. Anti-Patterns to Avoid ❌
+## 6. CSS / SCSS — Scoped to Module ⚠️
+
+NEVER write global CSS that can bleed into Odoo's core UI or other modules.
+All CSS/SCSS rules MUST be scoped under a unique class prefixed with the module name.
+
+```scss
+// ❌ BAD: Global selector — affects all Odoo forms
+.o_form_view {
+    background: red;
+}
+
+// ✅ GOOD: Scoped to this module only
+.my_module_form {
+    .o_field_widget {
+        color: #714b67;
+    }
+}
+```
+
+In the form view XML, apply the wrapper class at the top level:
+```xml
+<!-- ✅ Wrap your view with a module-specific class -->
+<form class="my_module_form">
+    ...
+</form>
+```
+
+For SCSS files, place them in `static/src/scss/my_module.scss` and register in `__manifest__.py` only inside the correct asset bundle:
+```python
+'assets': {
+    'web.assets_backend': [
+        'my_module/static/src/scss/my_module.scss',
+    ],
+},
+```
+
+## 7. Anti-Over-Engineering ❌
+
+Custom Odoo modules should be as **simple as possible**. Complexity adds maintenance cost and breaks on upgrades.
+
+- **Don't create new models** when inheriting an existing model (`_inherit`) is sufficient.
+- **Don't create a wizard** if the action can be done with a simple button on the form.
+- **Don't add a configuration setting** unless the client explicitly needs to toggle the behavior.
+- **Don't create computed stored fields** when a simple method call would do.
+- **Don't override `create()` and `write()`** unless there is no alternative (prefer `@api.depends` and `@api.constrains`).
+- **Don't add new menus or actions** if the feature can live inside an existing menu item.
+- **Ask yourself first**: Can I solve this with **Odoo Studio**, a **server action**, or a **scheduled action** instead of Python code?
+
+## 8. Other Anti-Patterns to Avoid ❌
 
 - **No `# -*- coding: utf-8 -*-`**: It is redundant in Python 3.
 - **No `api.multi` or `api.one`**: These are obsolete in modern Odoo.
